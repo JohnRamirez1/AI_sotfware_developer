@@ -1,6 +1,6 @@
 from src.state.state import State, UserStories,POReview, DecisionPOReview
 from langchain_core.messages import HumanMessage, SystemMessage
-
+from langchain.prompts import PromptTemplate
 
 class User_Stories:
     """
@@ -15,22 +15,52 @@ class User_Stories:
         # Augment the LLM with schema for structured output
         planner = self.llm.with_structured_output(UserStories)
         
+        prompt_template = PromptTemplate(
+            input_variables=["requirement", "user_stories", "po_review", "human_po_review"],
+            template="""
+            You are an AI-driven **Agile Product Manager**. Your role is to create well-defined user stories based on the given project requirements.
+            
+            ---
+            **Project Requirement:** {requirement}
+            **Existing User Stories (if any):** {user_stories}
+            **Product Owner Feedback:** {po_review}
+            **Human-in-the-Loop Review:** {human_po_review}
+            ---
+            
+            **📌 User Story Format:**
+            - **Title:** Short, clear title for the feature.
+            - **As a [role], I want to [action], so that [benefit].**
+            - **Acceptance Criteria:** Clear, testable conditions for story completion.
+            - **Priority:** Must-have, should-have, nice-to-have.
+            - **Dependencies:** Identify any related stories or technical constraints.
+
+            Ensure the user stories are **concise, actionable, and align with Agile best practices**.
+            """
+        )
+
         # Generate user stories
-        if state.get('decision_po_review')=='Rejected':
+        if state.get('decision_po_review') == 'Rejected':
             project_user_stories = planner.invoke(
                 [
-                    SystemMessage( content="Generate the user stories plan for the project but aditional from requirement take into account the product owner feedback.\n"
-                    "to improve the user stories take into account the initial user stories, the initial requirement and the product owner feedback and and human-in-the-loop review"),
-                    HumanMessage(content=f"Here is initial user stories {state['user_stories']} the initial requirement: {state['requirement']}, product owner feedback: {state['po_review']} and human-in-the-loop review {state['human_po_review']}"),
+                    SystemMessage(content=prompt_template.format(
+                        requirement=state['requirement'],
+                        user_stories=state.get('user_stories', "None"),
+                        po_review=state.get('po_review', "None"),
+                        human_po_review=state.get('human_po_review', "None")
+                    )),
                 ]
-            )                    
-        elif state.get('decision_po_review','Initial')=='Initial':
+            )
+        elif state.get('decision_po_review', 'Initial') == 'Initial':
             project_user_stories = planner.invoke(
-                    [
-                        SystemMessage(content="Generate the user stories plan for the project"),
-                        HumanMessage(content=f"Here is the requirement: {state['requirement']}"),
-                    ]
-                )    
+                [
+                    SystemMessage(content=prompt_template.format(
+                        requirement=state['requirement'],
+                        user_stories=state.get('user_stories', "None"),
+                        po_review=state.get('po_review', "None"),
+                        human_po_review=state.get('human_po_review', "None")
+                    )),
+                ]
+            )   
         return {"user_stories": project_user_stories}     
 
 class ProductOwnerReview:
@@ -109,15 +139,24 @@ class DecisionProductOwnerReview:
         ])
         print("\n=== Decision Review Feedback ===")
         print(f"decision_po_review: {decision_product_owner_review.decision_po_review}")
-        if str(decision_product_owner_review.decision_po_review)=='Rejected':
-        times_reject_po += 1
-        return {"decision_po_review": str(decision_product_owner_review.decision_po_review)}
+        # if str(decision_product_owner_review.decision_po_review)=='Rejected':
+        if "times_reject_po" not in state:
+            state["times_reject_po"] = 0  
+            print(f"init times_reject_po: {state['times_reject_po']}")
+        else:
+            state["times_reject_po"] += 1
+            print(f"update times_reject_po: {state['times_reject_po']}")
+    
+        return { "decision_po_review": str(decision_product_owner_review.decision_po_review), "times_reject_po": state["times_reject_po"]}
     
 def route_product_owner_review(state: State) -> dict:
     """Checks if user stories are approved and passes them to the next stage."""
     # print("\n=== Route Product Owner Review ===")
     # print(f"decision_po_review: {state['decision_po_review']}")
-    if state["decision_po_review"] == "Accepted":
+        
+    if state["decision_po_review"] == "Accepted" or state["times_reject_po"]>=1:
         return "Accepted"
+    
     elif state["decision_po_review"] == "Rejected":
         return "Rejected + Feedback"
+        

@@ -33,12 +33,19 @@ elif selected_model == 'openai':
 code_developer = GraphBuilder(model)
 graph_builder = code_developer.test_code_builder()  
 memory = MemorySaver()
-graph = graph_builder.compile(interrupt_after=["decision_product_owner_review","decision_design_review"], checkpointer=memory)
+# graph = graph_builder.compile(interrupt_after=["decision_product_owner_review","decision_design_review"], checkpointer=memory)
 # save graph as PNG
-graph = graph_builder.compile()
+graph = graph_builder.compile(checkpointer=memory)
 graph.get_graph().draw_mermaid_png(output_file_path='agentic_code_builder.png')
-state = graph.invoke({"requirement": "Create code for snake game"})
+# state = graph.invoke({"requirement": "Create code for snake game"})
 
+initial_input = {"requirement": HumanMessage(content="Create code for snake game")}
+thread = {"configurable": {"thread_id": "1"}}
+n = 0
+for event in graph.stream(initial_input, thread, stream_mode="updates"):
+    print(f"\n=== run {n} ===")
+    print(event)
+    n+=1
 
 # # Run graph with updated state
 # initial_input = {"requirement": HumanMessage(content="Create code for snake game")}

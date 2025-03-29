@@ -31,6 +31,19 @@ class DDReview(BaseModel):
 class DecisionDDReview(BaseModel):
     decision_dd_review: Literal["Accepted", "Rejected"] = Field(description="Decide if the documents are Accepted or not.",)
 
+
+class GeneratedCode(BaseModel):
+    parent_folder: Literal["backend", "frontend", "dependencies", "config"] = Field(
+        ..., description="Category where the file belongs (e.g., backend, frontend, dependencies, config)"
+    )
+    file_name: str = Field(..., description="File name with extension (e.g., 'app.py')")
+    generated_code: str = Field(..., description="Generated code content to be stored in the file")
+
+class GeneratedProject(BaseModel):
+    project_name: str = Field(..., description="Name of the generated project")
+    code_files: List[GeneratedCode] = Field(default=[], description="List of generated code files")
+
+
 # class DesignDoc(TypedDict, total=False):
 #     name: str = Field(description="Name for this desing document.",)
 #     description: str = Field(description="Content of this desing document.",)
@@ -64,13 +77,14 @@ class State(TypedDict, total=False):
     po_review: Optional[str]
     human_po_review: Optional[str]
     decision_po_review: Optional[str]
-    times_reject_po = 0
+    times_reject_po: Optional[int]
     design_documents: Optional[List[DesignDocument]]
     dd_review: Optional[str]
     human_dd_review: Optional[str]
     decision_dd_review: Optional[str]
+    times_reject_dd: Optional[int]
 
-    # document_code:Optional[list[]]
+    # implementation_scripts:Optional[list[]]
     # design_docs: Optional[List[DesignDoc]]
     # code: Optional[List[CodeFile]]
     # global_test_results: Optional[List[TestResult]]  

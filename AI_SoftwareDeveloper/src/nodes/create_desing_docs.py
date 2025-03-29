@@ -1,6 +1,6 @@
 from src.state.state import State, DesignDocuments, DDReview, DecisionDDReview
 from langchain_core.messages import HumanMessage, SystemMessage
-
+from langchain.prompts import PromptTemplate
 
 class DocumentsDesigner:
     """
@@ -39,28 +39,66 @@ class UserStoriesReview:
         # Augment the LLM with schema for structured output
         planner = self.llm.with_structured_output(DesignDocuments)
         
+        prompt_template = PromptTemplate(
+            input_variables=["user_stories", "design_documents", "dd_review", "human_dd_review"],
+            template="""
+            You are an expert software architect. Your task is to generate a **Functional Design Document (FDD)** and a **Technical Design Document (TDD)**
+            for an application based on the given user stories. The output must be formatted in **Markdown**
+            
+            ---
+            **User Stories:** {user_stories}
+            **Existing Design Documents (if any):** {design_documents}
+            **Product Owner Feedback:** {dd_review}
+            **Human-in-the-Loop Review:** {human_dd_review}
+            ---
+            
+            **📄 Functional Design Document (FDD)**
+            - **Objective:** Describe the purpose of the application.
+            - **User Roles & Permissions:** Define all types of users and their capabilities.
+            - **Features & Functional Modules:** List all major system modules and their functions.
+            - **Workflows & User Interactions:** Outline key workflows and user actions.
+            - **System Integrations:** Identify external APIs or databases required.
+            - **Non-Functional Requirements:** Define performance, security, and compliance standards.
+            - **Acceptance Criteria:** Set clear validation conditions for feature completion.
+            
+            **📄 Technical Design Document (TDD)**
+            - **System Architecture:** Describe the system architecture (e.g., microservices, monolith, event-driven).
+            - **Technology Stack:** Recommend programming languages, frameworks, and databases.
+            - **Module Breakdown:** Provide details on each module’s structure and logic.
+            - **APIs & Contracts:** Define key API endpoints, input/output formats, and integration logic.
+            - **Data Models & Storage:** Outline database schema, data relationships, and storage considerations.
+            - **Security & Authentication:** Detail access control, encryption, and data protection measures.
+            - **Deployment & CI/CD:** Describe the deployment pipeline, testing, and automation strategies.
+            - **Scalability & Fault Tolerance:** Recommend caching, load balancing, and failure recovery strategies.
+
+            Ensure the generated documents are **modular, scalable, and follow best practices**.
+            """
+        )
+
         # Generate user stories
-        if state.get('decision_dd_review')=='Rejected':
+        if state.get('decision_dd_review') == 'Rejected':
             project_design_documents = planner.invoke(
                 [
-                    SystemMessage( content="You are an AI expert designing functional and technical documents to develop sofware projects.\n"
-                    "Based on the following user stories, generate a comprehensive design documents. The document should include functional and\n"
-                    "technical details, key components, and system interactions. Ensure clarity in architecture, data flow, and dependencies. \n"
-                    "to improve the initial design documents, the user stories, the product owner feedback and human-in-the-loop review"),
-                    HumanMessage(content=f"Here is the initial design documents {state['design_documents']} the user stories: {state['user_stories']}, product owner feedback: {state['dd_review']} and human-in-the-loop review {state['human_dd_review']}"),
+                    SystemMessage(content=prompt_template.format(
+                        user_stories=state['user_stories'],
+                        design_documents=state['design_documents'],
+                        dd_review=state['dd_review'],
+                        human_dd_review=state['human_dd_review']
+                    )),
                 ]
-            )                    
-        elif state.get('decision_dd_review','Initial')=='Initial':
+            )
+        elif state.get('decision_dd_review', 'Initial') == 'Initial':
             project_design_documents = planner.invoke(
-                    [
-                        SystemMessage(content="You are an AI expert designing functional and technical documents to develop sofware projects.\n"
-                    "Based on the following user stories, generate a comprehensive design documents. The document should include functional and\n"
-                    "technical details, key components, and system interactions. Ensure clarity in architecture, data flow, and dependencies.\n"
-                    "to generate the design functional and technical documents take into account the user stories"
-                    ),
-                        HumanMessage(content=f"Here is the user stories: {state['user_stories']}"),
-                    ]
-                )    
+                [
+                    SystemMessage(content=prompt_template.format(
+                        user_stories=state['user_stories'],
+                        design_documents="None",
+                        dd_review="None",
+                        human_dd_review="None"
+                    )),
+                ]
+            )
+
         return {"design_documents": project_design_documents}
 
 class DesignDocumentReview:
@@ -140,13 +178,20 @@ class DecisionDesigDocumentReview:
         ])
         print("\n=== Document Review Feedback ===")
         print(f"decision_dd_review: {decision_review.decision_dd_review}")
-        return {"decision_dd_review": str(decision_review.decision_dd_review)}
+        if "times_reject_dd" not in state:
+            state["times_reject_dd"] = 0  
+            print(f"init times_reject_dd: {state['times_reject_dd']}")
+        else:
+            state["times_reject_dd"] += 1
+            print(f"update times_reject_dd: {state['times_reject_dd']}")
+
+        return {"decision_dd_review": str(decision_review.decision_dd_review), "times_reject_dd": state["times_reject_dd"]}
     
 def route_document_review(state: State) -> dict:
     """Checks if documents was approved and passes them to the next stage."""
     print("\n=== Route Design Document Review ===")
     print(f"decision_dd_review: {state['decision_po_review']}")
-    if state["decision_dd_review"] == "Accepted":
+    if state["decision_dd_review"] == "Accepted" or state["times_reject_dd"]>=1:
         return "Accepted"
     elif state["decision_dd_review"] == "Rejected":
         return "Rejected + Feedback"
