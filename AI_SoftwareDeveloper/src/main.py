@@ -42,66 +42,11 @@ graph.get_graph().draw_mermaid_png(output_file_path='agentic_code_builder.png')
 initial_input = {"requirement": HumanMessage(content="Create code for snake game")}
 thread = {"configurable": {"thread_id": "1"}}
 n = 0
-for event in graph.stream(initial_input, thread, stream_mode="updates"):
+# graph.config(recursion_limit=100)  
+
+
+for event in graph.stream(initial_input, config={"recursion_limit": 100, "thread_id": "my_thread_1"}):
+# for event in graph.stream(initial_input, thread):
     print(f"\n=== run {n} ===")
     print(event)
     n+=1
-
-# # Run graph with updated state
-# initial_input = {"requirement": HumanMessage(content="Create code for snake game")}
-# thread = {"configurable": {"thread_id": "1"}}
-
-# event = {}
-# flag_initial = True
-# n = 0
-# while 'document_code' not in event:
-#     if flag_initial:
-#         #stream first time
-#         for event in graph.stream(initial_input, thread, stream_mode="updates"):
-#             if "decision_po_review" in event:
-#                 print(f"\n=== run {n} ===")
-#                 # print(event)
-#         flag_initial = False
-#     else:
-#         # Run execution with new state
-#         print(f"\n=== next step to execute {n} ===")
-#         for event in graph.stream(None, thread, stream_mode="updates"):
-#             print(f"\n=== run {n} ===")
-        
-#     state=graph.get_state(thread)
-#     print(f"current state: {state}")
-#     # Verify if we are in Product_Owner_Review nodes and modify state
-#     if "decision_po_review" in state.values:
-#         # humman in the loop to Update the status 
-#         new_decision = input("Decision About User Stories: Please confirm decision about user stories 'Rejected' or 'Accepted' if no changes are needed:\n")
-#         if new_decision in ('Rejected', 'Accepted'):
-#             # state["decision_po_review"] = new_decision
-#             state.values["decision_po_review"] = new_decision
-#             if "writes" in state.metadata:
-#                 state.metadata["writes"]["decision_product_owner_review"] = {"decision_po_review": new_decision}
-#             thread["configurable"]["state"] = state  
-#             # memory.save_state(thread["configurable"]["thread_id"], state)
-#             # memory.restore(thread["configurable"]["thread_id"], state)
-#             # event["decision_po_review"] = new_decision
-#             # thread["configurable"]["state"] = event  #save the status into thread
-#             # print(f"Updated state to input and continuing execution...")
-#             # print("\n=== updated decision about user stories ===")
-#             # print(event['decision_po_review'])
-
-#     elif "decision_dd_review" in state.values:
-#     # elif "decision_dd_review" in event:
-#         # humman in the loop to Update the status 
-#         new_decision = input("Decision Desing Documents: Please confirm decision about Desing Documents 'Rejected' or 'Accepted' if no changes are needed:\n")
-#         if new_decision in ('Rejected', 'Accepted'):
-#             state.values["decision_dd_review"] = new_decision
-#             if "writes" in state.metadata:
-#                 state.metadata["writes"]["decision_design_review"] = {"decision_dd_review": new_decision}
-#             # event["decision_dd_review"] = new_decision
-#             # # Run the graph with updated state
-#             # thread["configurable"]["state"] = event  #save the status into thread
-#             # print(f"Updated state to input and continuing execution...")
-#             # print("\n=== updated decision about desing document ===")
-#             # print(event['decision_dd_review'])
-#     n += 1
-
-# print(state)

@@ -138,8 +138,7 @@ class DecisionProductOwnerReview:
             )),
         ])
         print("\n=== Decision Review Feedback ===")
-        print(f"decision_po_review: {decision_product_owner_review.decision_po_review}")
-        # if str(decision_product_owner_review.decision_po_review)=='Rejected':
+        # print(f"decision_po_review: {decision_product_owner_review.decision_po_review}")
         if "times_reject_po" not in state:
             state["times_reject_po"] = 0  
             print(f"init times_reject_po: {state['times_reject_po']}")

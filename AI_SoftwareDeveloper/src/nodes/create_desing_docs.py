@@ -71,7 +71,7 @@ class UserStoriesReview:
             - **Deployment & CI/CD:** Describe the deployment pipeline, testing, and automation strategies.
             - **Scalability & Fault Tolerance:** Recommend caching, load balancing, and failure recovery strategies.
 
-            Ensure the generated documents are **modular, scalable, and follow best practices**.
+            Ensure the generated documents are **modular, scalable, and follow best practices**. Ensure proper Markdown syntax..
             """
         )
 
