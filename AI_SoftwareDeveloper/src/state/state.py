@@ -48,6 +48,8 @@ class CodReview(BaseModel):
 class DecisionCodReview(BaseModel):
     decision_code_review: Literal["Accepted", "Rejected"] = Field(description="Decide if the codes are accepted or not.",)
 
+class DecisionTestCases(BaseModel):
+    decision_test_cases_feedback: Literal["Accepted", "Rejected"] = Field(description="Decide if the test cases are accepted or not.",)
 
 class State(TypedDict, total=False):
     requirement: str # project requirement
@@ -68,3 +70,7 @@ class State(TypedDict, total=False):
     times_reject_code: Optional[int]
     security_review_feedback: Optional[str]
     test_cases_code: Optional[List[TestCasesCode]]
+    test_cases_feedback: Optional[str]
+    human_test_cases_review: Optional[str]
+    decision_test_cases_feedback: Optional[str]
+    times_reject_tc: Optional[int]

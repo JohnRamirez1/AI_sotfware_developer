@@ -5,8 +5,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from src.state.state import State
 from src.nodes.generate_user_stories import User_Stories, ProductOwnerReview, HumanLoopProductOwnerReview, DecisionProductOwnerReview, route_product_owner_review
 from src.nodes.create_desing_docs import DocumentsDesigner, UserStoriesReview, DesignDocumentReview, HumanLoopDesingDocumentReview, DecisionDesigDocumentReview, route_document_review
-from src.nodes.generate_code import CodeGenerator, CodeReview, HumanCodeOwnerReview, DecisionCodeReview, route_code_review
-from src.nodes.security_review import SecurityReviewer
+from src.nodes.generate_code import CodeGenerator, CodeReview, HumanCodeOwnerReview, DecisionCodeReview, route_code_review 
+from src.nodes.security_review import SecurityReviewer, route_test_cases_review
 
 class GraphBuilder:
     def __init__(self, model):
@@ -59,6 +59,10 @@ class GraphBuilder:
         self.graph_builder.add_node("fix_code_after_code_review", self.security_review_node.improve_code_project)
         self.graph_builder.add_node("fix_code_after_security", self.security_review_node.improve_security)
         self.graph_builder.add_node("write_test_cases", self.security_review_node.write_test_cases)
+        self.graph_builder.add_node("test_cases_review", self.security_review_node.test_cases_review)
+        self.graph_builder.add_node("human_loop_test_cases_review", self.security_review_node.human_loop_test_cases_review)
+        self.graph_builder.add_node("decision_test_cases_review", self.security_review_node.decision_test_cases_review)
+        self.graph_builder.add_node("fix_test_cases", self.security_review_node.fix_test_cases)
 
 
         # graph user stories part
@@ -103,6 +107,16 @@ class GraphBuilder:
         self.graph_builder.add_edge("security_review","fix_code_after_code_review")
         self.graph_builder.add_edge("fix_code_after_code_review","fix_code_after_security")
         self.graph_builder.add_edge("fix_code_after_security","write_test_cases")
-        self.graph_builder.add_edge("write_test_cases",END)
-
+        self.graph_builder.add_edge("write_test_cases",'test_cases_review')
+        self.graph_builder.add_edge("test_cases_review","human_loop_test_cases_review")
+        self.graph_builder.add_edge("human_loop_test_cases_review","decision_test_cases_review")
+        self.graph_builder.add_conditional_edges(
+            "decision_test_cases_review",
+            route_test_cases_review,
+            {
+            "Accepted": "fix_test_cases",
+            "Rejected + Feedback": "write_test_cases",
+            },
+        )
+        self.graph_builder.add_edge("fix_test_cases",END)
         return self.graph_builder
