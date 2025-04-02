@@ -35,9 +35,12 @@ class GeneratedCode(BaseModel):
     file_name: str = Field(..., description="File name with extension (e.g., 'app.py')")
     generated_code: str = Field(..., description="Generated code content to be stored in the file")
 
-class TestCasesCode(BaseModel):
+class TestCaseCode(BaseModel):
     file_name: str = Field(..., description="File name with extension (e.g., 'app.py')")
     generated_code: str = Field(..., description="Generated code content to be stored in the file")
+
+class TestCasesCodes(BaseModel):
+    test_cases_codes: List[TestCaseCode] = Field( description=" User Stories of the project",)
 
 class GeneratedProject(BaseModel):
     generated_project: List[GeneratedCode] = Field(description="List of dictionaries with generated code files")
@@ -69,7 +72,7 @@ class State(TypedDict, total=False):
     decision_code_review_feedback: Optional[str]
     times_reject_code: Optional[int]
     security_review_feedback: Optional[str]
-    test_cases_code: Optional[List[TestCasesCode]]
+    test_cases_codes: Optional[List[TestCaseCode]]
     test_cases_feedback: Optional[str]
     human_test_cases_review: Optional[str]
     decision_test_cases_feedback: Optional[str]

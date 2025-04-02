@@ -2,65 +2,52 @@ from src.state.state import State, UserStories,POReview, DecisionPOReview
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.prompts import PromptTemplate
 
-class User_Stories:
+class UserStories:
     """
-    node to generate user stories given some code request.
+    Node to generate user stories based on project requirements.
     """
-    def __init__(self,model):
+    def __init__(self, model):
         self.llm = model
 
-    def user_story_planner(self, state: State)-> dict:
-        """Orchestrator that generates user stories for the code based on the requirement"""
+    def user_story_planner(self, state: State) -> dict:
+        """Generates user stories based on the provided requirements and feedback."""
 
-        # Augment the LLM with schema for structured output
+        # Augment LLM with structured schema output
         planner = self.llm.with_structured_output(UserStories)
-        
+
         prompt_template = PromptTemplate(
             input_variables=["requirement", "user_stories", "po_review", "human_po_review"],
             template="""
-            You are an AI-driven **Agile Product Manager**. Your role is to create well-defined user stories based on the given project requirements.
+            You are an AI-driven **Agile Product Manager** responsible for writing clear, well-defined user stories.
             
             ---
             **Project Requirement:** {requirement}
             **Existing User Stories (if any):** {user_stories}
             **Product Owner Feedback:** {po_review}
-            **Human-in-the-Loop Review:** {human_po_review}
+            **Human-in-the-Loop Review Feedback:** {human_po_review}
             ---
-            
-            **📌 User Story Format:**
-            - **Title:** Short, clear title for the feature.
-            - **As a [role], I want to [action], so that [benefit].**
-            - **Acceptance Criteria:** Clear, testable conditions for story completion.
-            - **Priority:** Must-have, should-have, nice-to-have.
-            - **Dependencies:** Identify any related stories or technical constraints.
 
-            Ensure the user stories are **concise, actionable, and align with Agile best practices**.
+            **📌 User Story Format:**
+            - **Title:** A short, descriptive title.
+            - **User Story:** "As a [role], I want to [action], so that [benefit]."
+            - **Acceptance Criteria:** Clear, testable conditions for completion.
+            - **Priority:** Must-have, should-have, or nice-to-have.
+            - **Dependencies:** Any related stories or technical constraints.
+
+            Ensure user stories are **concise, actionable, and adhere to Agile best practices**.
             """
         )
 
-        # Generate user stories
-        if state.get('decision_po_review') == 'Rejected':
-            project_user_stories = planner.invoke(
-                [
-                    SystemMessage(content=prompt_template.format(
-                        requirement=state['requirement'],
-                        user_stories=state.get('user_stories', "None"),
-                        po_review=state.get('po_review', "None"),
-                        human_po_review=state.get('human_po_review', "None")
-                    )),
-                ]
-            )
-        elif state.get('decision_po_review', 'Initial') == 'Initial':
-            project_user_stories = planner.invoke(
-                [
-                    SystemMessage(content=prompt_template.format(
-                        requirement=state['requirement'],
-                        user_stories=state.get('user_stories', "None"),
-                        po_review=state.get('po_review', "None"),
-                        human_po_review=state.get('human_po_review', "None")
-                    )),
-                ]
-            )   
+        # Generate user stories based on the review decision
+        project_user_stories = planner.invoke([
+            SystemMessage(content=prompt_template.format(
+                requirement=state['requirement'],
+                user_stories=state.get('user_stories', "None"),
+                po_review=state.get('po_review', "None"),
+                human_po_review=state.get('human_po_review', "None")
+            ))
+        ])
+
         return {"user_stories": project_user_stories}     
 
 class ProductOwnerReview:
@@ -71,20 +58,22 @@ class ProductOwnerReview:
         self.llm = model
 
     def review_user_stories(self, state: State) -> dict:
-        """AI-assisted review of user stories by the product owner."""
+        """Performs an AI-assisted product owner review of user stories."""
+
         reviewer = self.llm.with_structured_output(POReview)
 
         review_feedback = reviewer.invoke([
-            SystemMessage(content="You are a critical product owner reviewing user stories. \n"
-            "Your goal is to analyze the user stories, identify missing elements, \n"
-            "suggest improvements, and ensure completeness, clarity, and feasibility."),
-            HumanMessage(content=f"Here are the generated user stories: {state['user_stories']}. "
-                             "Identify any missing requirements, problems with feasibility, clarify vague descriptions, and suggest improvements."),
+            SystemMessage(content=(
+                "You are a critical product owner reviewing user stories. "
+                "Analyze them for completeness, clarity, feasibility, and adherence to Agile principles. "
+                "Identify missing elements, suggest improvements, and flag any inconsistencies."
+            )),
+            HumanMessage(content=(
+                f"Here are the generated user stories:\n{state['user_stories']}\n\n"
+                "Identify any missing requirements, feasibility issues, vague descriptions, or areas for improvement."
+            )),
         ])
-        
-        # print("\n=== Product Owner Review Feedback ===")
-        # print(f"Product Owner Review Feedback: {review_feedback}")
-        # print(f"state: {state}")
+
         return {"po_review": review_feedback}
 
 class HumanLoopProductOwnerReview:
@@ -94,68 +83,57 @@ class HumanLoopProductOwnerReview:
     @staticmethod
     def get_human_feedback(state: State) -> dict:
         """Collects human feedback on the Product Owner review."""
-        
+
         print("\n=== Human Review Required ===")
         print("A Product Owner has suggested changes to the user stories.")
-        print(f"Here are the original user stories:\n{state['user_stories']}\n")
-        print(f"Here is the Product Owner's review feedback:\n{state['po_review']}\n")
-        
-        # Simulate human feedback collection (replace with actual input UI in production)
-        human_review = input("Please enter any modification for user stories or type 'Accepted' if no changes are needed:\n")
-        
-        # print("\n=== Human Review Feedback ===")
-        # print(f"human_po_review {human_review.strip()}")
-        # print(f"state: {state}")
+        print(f"Original User Stories:\n{state['user_stories']}\n")
+        print(f"Product Owner's Review Feedback:\n{state['po_review']}\n")
+
+        # Simulate human feedback collection (replace with actual UI input in production)
+        human_review = input("Enter modifications or type 'Accepted' if no changes are needed:\n").strip()
+
         return {"human_po_review": human_review}
    
 class DecisionProductOwnerReview:
     """
-    Node to generate approve or reject decision based on review feedback.
+    Node to decide whether to approve or reject the user stories.
     """
     def __init__(self, model):
         self.llm = model
 
     def decision_review(self, state: State) -> dict:
-        """Checks if review feedback was met and decides to approve or reject the user stories."""
+        """Evaluates feedback and determines whether to approve or request changes to user stories."""
 
         evaluator = self.llm.with_structured_output(DecisionPOReview)
-        print("\n=== Input State in DecisionProductOwnerReview ===")
-        print(f"State: {state}")
 
-
-        decision_product_owner_review = evaluator.invoke([
+        decision_review_feedback = evaluator.invoke([
             SystemMessage(content=(
-                "You are an AI responsible for making the final decision on user stories. "
-                "Your task is to determine whether the suggested improvements from the product owner review "
-                "and human-in-the-loop review have been incorporated properly."
+                "You are an AI responsible for the final decision on user stories. "
+                "Your task is to ensure that the feedback from the product owner and human review has been properly implemented."
             )),
             HumanMessage(content=(
-                f"Here is the latest product owner review feedback:\n{state['po_review']}\n\n"
-                f"Here is the latest human review feedback:\n{state['human_po_review']}\n\n"
-                f"Here are the user stories:\n{state['user_stories']}\n\n"
-                "Evaluate the product owner review feedback, human review feedback with the user stories and\n"
-                "decide if all necessary changes are incorporated or user stories needs to be updated."
+                f"Latest Product Owner Review Feedback:\n{state['po_review']}\n\n"
+                f"Latest Human Review Feedback:\n{state['human_po_review']}\n\n"
+                f"Updated User Stories:\n{state['user_stories']}\n\n"
+                "Evaluate whether all necessary improvements have been incorporated."
+                "If issues remain, request revisions. Otherwise, approve the user stories."
             )),
         ])
-        print("\n=== Decision Review Feedback ===")
-        # print(f"decision_po_review: {decision_product_owner_review.decision_po_review}")
-        if "times_reject_po" not in state:
-            state["times_reject_po"] = 0  
-            print(f"init times_reject_po: {state['times_reject_po']}")
-        else:
+
+        # Track rejection count to avoid infinite loops
+        state.setdefault("times_reject_po", 0)
+        if decision_review_feedback.decision_po_review == "Rejected":
             state["times_reject_po"] += 1
-            print(f"update times_reject_po: {state['times_reject_po']}")
+        print("\n=== Decision User Stories Review Feedback ===")
+        print(f"Decision: {decision_review_feedback.decision_po_review}")
+        print(f"Updated Rejection Count: {state['times_reject_po']}")
+
+        return {"decision_po_review": str(decision_review_feedback.decision_po_review), "times_reject_po": state["times_reject_po"]}
+
     
-        return { "decision_po_review": str(decision_product_owner_review.decision_po_review), "times_reject_po": state["times_reject_po"]}
+def route_product_owner_review(state: State) -> str:
+    """Routes user stories based on approval or rejection feedback."""
     
-def route_product_owner_review(state: State) -> dict:
-    """Checks if user stories are approved and passes them to the next stage."""
-    # print("\n=== Route Product Owner Review ===")
-    # print(f"decision_po_review: {state['decision_po_review']}")
-        
-    if state["decision_po_review"] == "Accepted" or state["times_reject_po"]>=1:
+    if state["decision_po_review"] == "Accepted" or state["times_reject_po"] >= 1:
         return "Accepted"
-    
-    elif state["decision_po_review"] == "Rejected":
-        return "Rejected + Feedback"
-        
+    return "Rejected + Feedback"

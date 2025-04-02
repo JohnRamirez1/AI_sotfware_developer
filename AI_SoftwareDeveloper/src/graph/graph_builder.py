@@ -3,8 +3,8 @@ from langgraph.prebuilt import tools_condition,ToolNode
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from src.state.state import State
-from src.nodes.generate_user_stories import User_Stories, ProductOwnerReview, HumanLoopProductOwnerReview, DecisionProductOwnerReview, route_product_owner_review
-from src.nodes.create_desing_docs import DocumentsDesigner, UserStoriesReview, DesignDocumentReview, HumanLoopDesingDocumentReview, DecisionDesigDocumentReview, route_document_review
+from src.nodes.generate_user_stories import UserStories, ProductOwnerReview, HumanLoopProductOwnerReview, DecisionProductOwnerReview, route_product_owner_review
+from src.nodes.create_desing_docs import DocumentsDesigner, DesignDocumentReview, HumanLoopDesignDocumentReview, DecisionDesignDocumentReview, route_document_review
 from src.nodes.generate_code import CodeGenerator, CodeReview, HumanCodeOwnerReview, DecisionCodeReview, route_code_review 
 from src.nodes.security_review import SecurityReviewer, route_test_cases_review
 
@@ -22,7 +22,7 @@ class GraphBuilder:
         The chatbot node is set as the entry point.
         """
         # user stories nodes
-        self.user_story_node = User_Stories(self.llm)
+        self.user_story_node = UserStories(self.llm)
         self.po_review_node = ProductOwnerReview(self.llm)
         self.humanloop_po_review_node = HumanLoopProductOwnerReview()
         self.decision_po_review_node = DecisionProductOwnerReview(self.llm)
@@ -33,12 +33,12 @@ class GraphBuilder:
         
         # documents nodes
         self.document_desing_node = DocumentsDesigner(self.llm)
-        self.us_review_node = UserStoriesReview(self.llm)
+        # self.us_review_node = UserStoriesReview(self.llm)
         self.dd_review_node = DesignDocumentReview(self.llm)
-        self.humanloop_dd_review_node = HumanLoopDesingDocumentReview()
-        self.decision_dd_review_node = DecisionDesigDocumentReview(self.llm)
+        self.humanloop_dd_review_node = HumanLoopDesignDocumentReview()
+        self.decision_dd_review_node = DecisionDesignDocumentReview(self.llm)
         self.graph_builder.add_node("create_design_docs", self.document_desing_node.design_document_planner)
-        self.graph_builder.add_node("revise_user_stories", self.us_review_node.user_stories_reviewer)
+        # self.graph_builder.add_node("revise_user_stories", self.us_review_node.user_stories_reviewer)
         self.graph_builder.add_node("desing_review", self.dd_review_node.design_document_reviewer)
         self.graph_builder.add_node("human_loop_design_review", self.humanloop_dd_review_node.get_human_feedback)
         self.graph_builder.add_node("decision_design_review", self.decision_dd_review_node.decision_review)
@@ -79,8 +79,8 @@ class GraphBuilder:
             },
         )
         # graph functional and thecnical documents part
-        self.graph_builder.add_edge("create_design_docs","revise_user_stories")
-        self.graph_builder.add_edge("revise_user_stories","desing_review")
+        self.graph_builder.add_edge("create_design_docs","desing_review")
+        # self.graph_builder.add_edge("revise_user_stories","desing_review")
         self.graph_builder.add_edge("desing_review","human_loop_design_review")
         self.graph_builder.add_edge("human_loop_design_review","decision_design_review")
         self.graph_builder.add_conditional_edges(
@@ -88,7 +88,7 @@ class GraphBuilder:
             route_document_review,
             {
             "Accepted": 'generate_code',
-            "Rejected + Feedback": "revise_user_stories",
+            "Rejected + Feedback": "create_design_docs",
             },
         )
         # graph code part
