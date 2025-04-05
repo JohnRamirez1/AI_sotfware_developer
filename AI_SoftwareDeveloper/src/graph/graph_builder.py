@@ -3,7 +3,7 @@ from langgraph.prebuilt import tools_condition,ToolNode
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from src.state.state import State
-from src.nodes.generate_user_stories import UserStories, ProductOwnerReview, HumanLoopProductOwnerReview, DecisionProductOwnerReview, route_product_owner_review
+from src.nodes.generate_user_stories import CreateUserStories, ProductOwnerReview, HumanLoopProductOwnerReview, DecisionProductOwnerReview, route_product_owner_review
 from src.nodes.create_desing_docs import DocumentsDesigner, DesignDocumentReview, HumanLoopDesignDocumentReview, DecisionDesignDocumentReview, route_document_review
 from src.nodes.generate_code import CodeGenerator, CodeReview, HumanCodeOwnerReview, DecisionCodeReview, route_code_review 
 from src.nodes.security_review import SecurityReviewer, route_test_cases_review
@@ -22,7 +22,7 @@ class GraphBuilder:
         The chatbot node is set as the entry point.
         """
         # user stories nodes
-        self.user_story_node = UserStories(self.llm)
+        self.user_story_node = CreateUserStories(self.llm)
         self.po_review_node = ProductOwnerReview(self.llm)
         self.humanloop_po_review_node = HumanLoopProductOwnerReview()
         self.decision_po_review_node = DecisionProductOwnerReview(self.llm)

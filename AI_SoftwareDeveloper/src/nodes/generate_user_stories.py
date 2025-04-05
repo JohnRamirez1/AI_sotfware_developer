@@ -2,7 +2,7 @@ from src.state.state import State, UserStories,POReview, DecisionPOReview
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.prompts import PromptTemplate
 
-class UserStories:
+class CreateUserStories:
     """
     Node to generate user stories based on project requirements.
     """
@@ -48,7 +48,7 @@ class UserStories:
             ))
         ])
 
-        return {"user_stories": project_user_stories}     
+        return {"user_stories": project_user_stories.user_stories}     
 
 class ProductOwnerReview:
     """
@@ -74,7 +74,7 @@ class ProductOwnerReview:
             )),
         ])
 
-        return {"po_review": review_feedback}
+        return {"po_review": review_feedback.po_review}
 
 class HumanLoopProductOwnerReview:
     """
@@ -129,7 +129,6 @@ class DecisionProductOwnerReview:
         print(f"Updated Rejection Count: {state['times_reject_po']}")
 
         return {"decision_po_review": str(decision_review_feedback.decision_po_review), "times_reject_po": state["times_reject_po"]}
-
     
 def route_product_owner_review(state: State) -> str:
     """Routes user stories based on approval or rejection feedback."""

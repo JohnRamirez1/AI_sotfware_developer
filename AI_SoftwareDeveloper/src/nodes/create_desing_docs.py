@@ -33,7 +33,7 @@ class DocumentsDesigner:
             HumanMessage(content=f"User Stories:\n{user_stories}")
         ])
         
-        return {"design_documents": project_design_documents}
+        return {"design_documents": project_design_documents.design_documents}
     
 # class UserStoriesReview:
     """
@@ -129,7 +129,7 @@ class DesignDocumentReview:
             HumanMessage(content=f"Here are the generated design documents:\n{state.get('design_documents', 'No design documents available.')}")
         ])
 
-        return {"dd_review": review_feedback}
+        return {"dd_review": review_feedback.dd_review}
 
 class HumanLoopDesignDocumentReview:
     """

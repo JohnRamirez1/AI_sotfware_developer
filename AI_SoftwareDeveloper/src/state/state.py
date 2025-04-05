@@ -37,10 +37,12 @@ class GeneratedCode(BaseModel):
 
 class TestCaseCode(BaseModel):
     file_name: str = Field(..., description="File name with extension (e.g., 'app.py')")
-    generated_code: str = Field(..., description="Generated code content to be stored in the file")
+    generated_code: str = Field(..., description="Generated test cases code to evaluate the project")
 
 class TestCasesCodes(BaseModel):
-    test_cases_codes: List[TestCaseCode] = Field( description=" User Stories of the project",)
+    test_cases_codes: List[TestCaseCode] = Field( 
+        description=" Test cases of the code project",
+        )
 
 class GeneratedProject(BaseModel):
     generated_project: List[GeneratedCode] = Field(description="List of dictionaries with generated code files")

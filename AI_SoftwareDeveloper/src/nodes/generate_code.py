@@ -52,7 +52,7 @@ class CodeGenerator:
         # Generate the code
         generated_project = planner.invoke([SystemMessage(content=prompt)])
 
-        return {"generated_project": generated_project}   
+        return {"generated_project": generated_project.generated_project}   
     
 class CodeReview:
     """
@@ -81,7 +81,7 @@ class CodeReview:
 
     def ai_code_reviewer(self, state: State) -> dict:
         """AI-assisted review of generated project code."""
-        reviewer = self.llm.with_structured_output(CodReview)
+        reviewer = self.llm.with_structured_output(CodeReview)
 
         # Safely retrieve relevant inputs from state
         generated_project = state.get("generated_project", "No generated project found.")
