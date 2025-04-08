@@ -29,24 +29,31 @@ elif selected_model == 'openai':
     obj_llm_config = OpenAILLM(user_controls_input=user_input)
     model = obj_llm_config.get_llm_model()
 
-# Build and Compile the graph
 code_developer = GraphBuilder(model)
 graph_builder = code_developer.test_code_builder()  
 memory = MemorySaver()
-# graph = graph_builder.compile(interrupt_after=["decision_product_owner_review","decision_design_review"], checkpointer=memory)
-# save graph as PNG
+
 graph = graph_builder.compile(checkpointer=memory)
 graph.get_graph().draw_mermaid_png(output_file_path='agentic_code_builder.png')
-# state = graph.invoke({"requirement": "Create code for snake game"})
+
+# # Define input
+# initial_input = {"requirement": HumanMessage(content="Create code for snake game")}
+
+# # Run the graph and get final state
+# final_state = graph.invoke(initial_input, config={"recursion_limit": 100, "thread_id": "my_thread_1"})
+
+# # Save final state to JSON
+# import json
+# with open("final_output_state.json", "w") as f:
+#     json.dump(final_state, f, indent=2, default=str)
+
+# print("✅ Final state saved to final_output_state.json")
 
 initial_input = {"requirement": HumanMessage(content="Create code for snake game")}
 thread = {"configurable": {"thread_id": "1"}}
 n = 0
-# graph.config(recursion_limit=100)  
-
 
 for event in graph.stream(initial_input, config={"recursion_limit": 100, "thread_id": "my_thread_1"}):
-# for event in graph.stream(initial_input, thread):
     print(f"\n=== run {n} ===")
     print(event)
     n+=1

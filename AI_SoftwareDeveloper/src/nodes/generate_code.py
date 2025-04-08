@@ -2,7 +2,78 @@ from src.state.state import State, CodReview, DecisionCodReview, GeneratedProjec
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.prompts import PromptTemplate
 
+
 class CodeGenerator:
+    """
+    Node to generate or refine code based on design documents and feedback.
+    """
+    SYSTEM_PROMPT = (
+        "You are an expert AI Software Engineer. Your task is to generate or improve a full-stack project "
+        "based on the provided Functional and Technical Design Documents. If previous code was rejected, "
+        "use the feedback to improve it.\n\n"
+        "### Objectives:\n"
+        "1. Follow best coding practices.\n"
+        "2. Ensure the code matches the system architecture in the design documents.\n"
+        "3. Address all code review and human feedback comments.\n"
+        "4. Reuse and improve upon any previous code if available.\n"
+        "5. Include project setup files and documentation.\n\n"
+        "### Inputs:\n"
+        "- Design Documents: {design_documents}\n"
+        "- Code Review Feedback: {code_review_feedback}\n"
+        "- Human Feedback: {human_code_review}\n"
+        "- Previous Project Code (if any): {previous_code_summary}\n\n"
+        "### Output:\n"
+        "- Improved or newly generated project code\n"
+        "- Updated folder structure, APIs, models, configurations, and documentation\n\n"
+        "Act like a senior engineer iterating after a rejected pull request. Be adaptive and precise."
+    )
+
+    def __init__(self, model):
+        self.llm = model
+
+    def summarize_code(self, generated_project: dict) -> str:
+        """Create a brief summary of the previously generated project."""
+        if not generated_project:
+            return "No previous code available."
+
+        # Try to extract main parts: modules, files, or components
+        try:
+            modules = list(generated_project.keys())  # If it's a dict with top-level parts
+            summary = f"Previous project contained: {', '.join(modules[:10])}."
+            if len(modules) > 10:
+                summary += f" (and {len(modules) - 10} more modules)"
+        except Exception:
+            summary = "Previous code was available but could not be summarized."
+
+        summary += " Reviewers requested changes to improve functionality or structure."
+        return summary
+
+    def code_developer(self, state: State) -> dict:
+        """Orchestrates code generation or refinement based on design documents and feedback."""
+        planner = self.llm.with_structured_output(GeneratedProject)
+
+        # Retrieve state values
+        design_docs = state.get("design_documents", [])
+        code_review_feedback = state.get("code_review_feedback", "")
+        human_code_review = state.get("human_code_review", "")
+        previous_code = state.get("generated_project", None)
+
+        previous_code_summary = self.summarize_code(previous_code)
+
+        # Construct prompt
+        prompt = self.SYSTEM_PROMPT.format(
+            design_documents=design_docs,
+            code_review_feedback=code_review_feedback,
+            human_code_review=human_code_review,
+            previous_code_summary=previous_code_summary
+        )
+
+        # Invoke the model
+        generated_project = planner.invoke([SystemMessage(content=prompt)])
+
+        return {"generated_project": generated_project.generated_project}
+    
+# class CodeGenerator:
     """
     Node to generate code based on functional and technical documents.
     """
@@ -16,7 +87,6 @@ class CodeGenerator:
         "6. **Implement Security Measures** - Follow secure coding practices, including authentication, authorization, and encryption where necessary.\n"
         "7. **Follow CI/CD and Deployment Guidelines** - If applicable, generate scripts for testing, building, and deploying the application.\n\n"
         "### Provided Inputs:\n"
-        "- **Project Requirements:** {requirement}\n"
         "- **Functional & Technical Design Documents:** {design_documents}\n"
         "- **Code Review Feedback:** {code_review_feedback}\n"
         "- **Human Review Feedback:** {human_code_review}\n\n"
@@ -37,13 +107,11 @@ class CodeGenerator:
 
         # Safely retrieve design documents and other inputs from state
         design_docs = state.get("design_documents", [])
-        requirement = state.get("requirement", "No requirements provided.")
-        code_review_feedback = state.get("code_review_fedback", "None")
-        human_code_review = state.get("human_code_review", "None")
+        code_review_feedback = state.get("code_review_fedback", "")
+        human_code_review = state.get("human_code_review", "")
 
         # Create the prompt
         prompt = self.SYSTEM_PROMPT.format(
-            requirement=requirement,
             design_documents=design_docs,
             code_review_feedback=code_review_feedback,
             human_code_review=human_code_review

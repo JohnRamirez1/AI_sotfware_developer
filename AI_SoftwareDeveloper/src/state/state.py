@@ -30,9 +30,8 @@ class DecisionDDReview(BaseModel):
     decision_dd_review: Literal["Accepted", "Rejected"] = Field(description="Decide if the documents are Accepted or not.",)
 
 class GeneratedCode(BaseModel):
-    parent_folder: Literal["backend", "frontend", "config", "dependencies", "API", "services"] = Field(
-        ..., description="Category where the file belongs (e.g., backend, frontend, dependencies, config")
-    file_name: str = Field(..., description="File name with extension (e.g., 'app.py')")
+    parent_folder: Literal["backend", "frontend", "config", "dependencies", "API", "services"]
+    file_path: str = Field(..., description="Full path relative to parent folder, e.g., 'services/db/db.py'")
     generated_code: str = Field(..., description="Generated code content to be stored in the file")
 
 class TestCaseCode(BaseModel):
@@ -57,25 +56,35 @@ class DecisionTestCases(BaseModel):
     decision_test_cases_feedback: Literal["Accepted", "Rejected"] = Field(description="Decide if the test cases are accepted or not.",)
 
 class State(TypedDict, total=False):
-    requirement: str # project requirement
-    user_stories: Optional[List[UserStory]]
-    po_review: Optional[str]
-    human_po_review: Optional[str]
-    decision_po_review: Optional[str]
-    times_reject_po: Optional[int]
-    design_documents: Optional[List[DesignDocument]]
-    dd_review: Optional[str]
-    human_dd_review: Optional[str]
-    decision_dd_review: Optional[str]
-    times_reject_dd: Optional[int]
-    generated_project: Optional[List[GeneratedCode]]
-    code_review_feedback: Optional[str]
-    human_code_review: Optional[str]
-    decision_code_review_feedback: Optional[str]
-    times_reject_code: Optional[int]
-    security_review_feedback: Optional[str]
-    test_cases_codes: Optional[List[TestCaseCode]]
-    test_cases_feedback: Optional[str]
-    human_test_cases_review: Optional[str]
-    decision_test_cases_feedback: Optional[str]
-    times_reject_tc: Optional[int]
+    requirement: str
+
+    # User Stories
+    user_stories: Optional[List[UserStory]] = None
+    po_review: Optional[str] = None
+    human_po_review: Optional[str] = None
+    decision_po_review: Optional[Literal["Accepted", "Rejected"]] = None
+    times_reject_po: int = 0
+
+    # Design Docs
+    design_documents: Optional[List[DesignDocument]] = None
+    dd_review: Optional[str] = None
+    human_dd_review: Optional[str] = None
+    decision_dd_review: Optional[Literal["Accepted", "Rejected"]] = None
+    times_reject_dd: int = 0
+
+    # Code Generation
+    generated_project: Optional[List[GeneratedCode]] = None
+    code_review_feedback: Optional[str] = None
+    human_code_review: Optional[str] = None
+    decision_code_review_feedback: Optional[Literal["Accepted", "Rejected"]] = None
+    times_reject_code: int = 0
+
+    # Security Review
+    security_review_feedback: Optional[str] = None
+
+    # Test Cases
+    test_cases_codes: Optional[List[TestCaseCode]] = None
+    test_cases_feedback: Optional[str] = None
+    human_test_cases_review: Optional[str] = None
+    decision_test_cases_feedback: Optional[Literal["Accepted", "Rejected"]] = None
+    times_reject_tc: int = 0
